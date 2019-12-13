@@ -1,3 +1,4 @@
+const path = require('path');
 const express = require('express');
 const xss = require('xss');
 const BookmarksService = require('./bookmarks-service');
@@ -8,14 +9,14 @@ const bodyParser = express.json();
 const serializeBookmark = bookmark => ({
   id: bookmark.id,
   title: xss(bookmark.title),
-  url: xss(bookmark.url),
+  url: bookmark.url,
   description: xss(bookmark.description),
-  rating: xss(bookmark.rating)
+  rating: Number(bookmark.rating)
 });
 
 
 bookmarkRouter
-  .route('/bookmarks')
+  .route('/')
   .get((req, res, next) => {
     const knexInstance = req.app.get('db');
     BookmarksService.getAllBookmarks(knexInstance)
@@ -25,8 +26,8 @@ bookmarkRouter
       .catch(next);
   })
   .post(bodyParser, (req, res, next) => {
-    let { title, url, rating = '', description } = req.body;
-    const newBookmark = { title, url, rating, description };
+    const { title, url, description, rating } = req.body;
+    const newBookmark = { title, url, description, rating };
 
     for (const [key, value] of Object.entries(newBookmark)) {
       if (value == null) {
@@ -43,7 +44,7 @@ bookmarkRouter
     }
 
     const numberRating = parseFloat(rating);
-    if (isNaN(numberRating) && rating !== '') {
+    if (isNaN(numberRating)) {
       return res
         .status(400)
         .send('Invalid data oawjefoijawofa');
@@ -62,21 +63,21 @@ bookmarkRouter
       .then(bookmark => {
         res
           .status(201)
-          .location(`/bookmarks/${bookmark.id}`)
+          .location(path.posix.join(req.originalUrl, `${bookmark.id}`))
           .json(serializeBookmark(bookmark));
       })
       .catch(next);
   });
 
 bookmarkRouter
-  .route('/bookmarks/:id')
+  .route('/:bookmark_id')
   .all((req, res, next) => {
     const { bookmark_id } = req.params;
     BookmarksService.getById(req.app.get('db'), bookmark_id)
       .then(bookmark => {
         if (!bookmark) {
           return res.status(404).json({
-            error: { message: 'Bookmark Not Found' }
+            error: { message: 'Bookmark doesn\'t exist' }
           });
         }
         res.bookmark = bookmark;
@@ -92,7 +93,29 @@ bookmarkRouter
       req.app.get('db'),
       req.params.bookmark_id
     )
-      .then(() => {
+      .then(numRowsAffected => {
+        res.status(204).end();
+      })
+      .catch(next);
+  })
+  .patch(bodyParser, (req, res, next) => {
+    const { title, url, description, rating } = req.body;
+    const updateBookmark = { title, url, description, rating };
+
+    const numberofValues = Object.values(updateBookmark).filter(Boolean).length;
+    if (numberofValues === 0) {
+      return res.status(400).json({
+        error: {
+          message: 'Request body must contain either title, url, description, or rating'
+        }
+      });
+    }
+    BookmarksService.updateBookmark(
+      req.app.get('db'),
+      req.params.bookmark_id,
+      updateBookmark
+    )
+      .then(numRowsAffected => {
         res.status(204).end();
       })
       .catch(next);

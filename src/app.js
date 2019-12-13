@@ -3,7 +3,7 @@ const express = require('express');
 const morgan = require('morgan');
 const cors = require('cors');
 const helmet = require('helmet');
-const { NODE_ENV, API_TOKEN } = require('./config');
+const { NODE_ENV } = require('./config');
 const bookmarkRouter = require('./bookmarks/bookmarks-router');
 const errorHandler = require('./error-handler');
 const validateUser = require('./auth-validate');
@@ -20,7 +20,7 @@ app.use(helmet());
 app.use(cors());
 app.use(validateUser);
 
-app.use(bookmarkRouter);
+app.use('/api/bookmarks', bookmarkRouter);
 
 app.get('/', (req, res) => {
   res.send('Hello, world!');
