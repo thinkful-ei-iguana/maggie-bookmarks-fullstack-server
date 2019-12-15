@@ -73,7 +73,7 @@ bookmarkRouter
   .route('/:bookmark_id')
   .all((req, res, next) => {
     const { bookmark_id } = req.params;
-    BookmarksService.getById(req.app.get('db'), bookmark_id)
+    return BookmarksService.getById(req.app.get('db'), bookmark_id)
       .then(bookmark => {
         if (!bookmark) {
           return res.status(404).json({
@@ -86,15 +86,15 @@ bookmarkRouter
       .catch(next);
   })
   .get((req, res, next) => {
-    res.json(serializeBookmark(res.bookmark));
+    return res.json(serializeBookmark(res.bookmark));
   })
   .delete((req, res, next) => {
-    BookmarksService.deleteBookmark(
+    return BookmarksService.deleteBookmark(
       req.app.get('db'),
       req.params.bookmark_id
     )
       .then(numRowsAffected => {
-        res.status(204).end();
+        return res.status(204).end();
       })
       .catch(next);
   })
@@ -102,21 +102,32 @@ bookmarkRouter
     const { title, url, description, rating } = req.body;
     const updateBookmark = { title, url, description, rating };
 
-    const numberofValues = Object.values(updateBookmark).filter(Boolean).length;
-    if (numberofValues === 0) {
+    const numberOfValues = Object.values(updateBookmark).filter(Boolean).length;
+    console.log('req body is', req.body);
+    console.log('updatebookmark is', updateBookmark);
+
+    if (rating && !Number.isInteger(rating) || rating < 1 || rating > 5) {
+      return res.status(400).json({
+        error: {
+          message: 'Rating must be a number between 1 and 5'
+        }
+      });
+    }
+
+    if (numberOfValues === 0) {
       return res.status(400).json({
         error: {
           message: 'Request body must contain either title, url, description, or rating'
         }
       });
     }
-    BookmarksService.updateBookmark(
+    return BookmarksService.updateBookmark(
       req.app.get('db'),
       req.params.bookmark_id,
       updateBookmark
     )
       .then(numRowsAffected => {
-        res.status(204).end();
+        return res.status(204).end();
       })
       .catch(next);
   });

@@ -237,7 +237,7 @@ describe('Bookmarks endpoints', function () {
           ...updateBookmark
         };
         return supertest(app)
-          .patch(`/api/boomarks/${idToUpdate}`)
+          .patch(`/api/bookmarks/${idToUpdate}`)
           .set('Authorization', `Bearer ${process.env.API_TOKEN}`)
           .send(updateBookmark)
           .expect(204)
@@ -266,6 +266,9 @@ describe('Bookmarks endpoints', function () {
         const idToUpdate = 2
         const updateBookmark = {
           title: 'updated bookmark title',
+          url: 'http://www.url.com',
+          description: 'test desc',
+          rating: 3
         }
         const expectedBookmark = {
           ...testBookmarks[idToUpdate - 1],
@@ -291,6 +294,9 @@ describe('Bookmarks endpoints', function () {
       it(`responds with 400 invalid 'rating' if not between 0 and 5`, () => {
         const idToUpdate = 2
         const updateInvalidRating = {
+          title: 'test title',
+          url: 'http://www.url.com',
+          description: 'test desc',
           rating: 'invalid',
         }
         return supertest(app)
@@ -299,7 +305,7 @@ describe('Bookmarks endpoints', function () {
           .set('Authorization', `Bearer ${process.env.API_TOKEN}`)
           .expect(400, {
             error: {
-              message: `'rating' must be a number between 0 and 5`
+              message: `Rating must be a number between 1 and 5`
             }
           })
       })
@@ -307,15 +313,18 @@ describe('Bookmarks endpoints', function () {
       it(`responds with 400 invalid 'url' if not a valid URL`, () => {
         const idToUpdate = 2
         const updateInvalidUrl = {
+          title: 'my title',
           url: 'htp://invalid-url',
-        }
+          description: 'test desc',
+          rating: 3
+        };
         return supertest(app)
           .patch(`/api/bookmarks/${idToUpdate}`)
           .send(updateInvalidUrl)
           .set('Authorization', `Bearer ${process.env.API_TOKEN}`)
           .expect(400, {
             error: {
-              message: `'url' must be a valid URL`
+              message: `Url must begin with http:// or https://`
             }
           })
       })
